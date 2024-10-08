@@ -114,11 +114,8 @@ class BaseConfluenceClient:
         base_url = self._get_base_url(access_token)
         search_url = f"{base_url}/wiki/rest/api/content/search"
 
-        # Substitutes any sequence of non-alphanumeric or whitespace characters with a whitespace
-        formatted_query = re.sub("\W+", " ", query)
-
         params = {
-            "cql": f'text ~ "{formatted_query}"',
+            "cql": query,
             "limit": self.search_limit,
         }
 
