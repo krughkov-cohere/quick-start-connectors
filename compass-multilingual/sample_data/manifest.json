@@ -4,61 +4,71 @@
       "id": "ecb_rate_decision",
       "language": "en",
       "title": "ECB Governing Council Holds Key Interest Rates Steady Amid Disinflation Progress",
-      "source_file": "sample_data/en/ecb_rate_decision.json"
+      "source_file": "sample_data/en/ecb_rate_decision.json",
+      "ingest": "structured_json"
     },
     {
       "id": "us_inflation_outlook",
       "language": "en",
       "title": "Federal Reserve Signals Cautious Approach to Rate Cuts as US Inflation Remains Above Target",
-      "source_file": "sample_data/en/us_inflation_outlook.json"
+      "source_file": "sample_data/en/us_inflation_outlook.json",
+      "ingest": "structured_json"
     },
     {
       "id": "global_supply_chain",
       "language": "en",
       "title": "Global Supply Chain Disruptions Persist as Red Sea Shipping Routes Face Extended Dislocation",
-      "source_file": "sample_data/en/global_supply_chain.json"
+      "source_file": "sample_data/en/global_supply_chain.json",
+      "ingest": "structured_json"
     },
     {
       "id": "politique_monetaire_bce",
       "language": "fr",
       "title": "La BCE maintient sa politique monétaire restrictive face à une inflation sous-jacente persistante",
-      "source_file": "sample_data/fr/politique_monetaire_bce.json"
+      "source_file": "sample_data/fr/politique_monetaire_bce.json",
+      "ingest": "structured_json"
     },
     {
       "id": "marche_du_travail_france",
       "language": "fr",
       "title": "Le marché du travail français affiche une résilience historique malgré un ralentissement économique",
-      "source_file": "sample_data/fr/marche_du_travail_france.json"
+      "source_file": "sample_data/fr/marche_du_travail_france.json",
+      "ingest": "structured_json"
     },
     {
       "id": "transition_energetique",
       "language": "fr",
       "title": "La transition énergétique européenne accélère le déploiement des énergies renouvelables et la décarbonation industrielle",
-      "source_file": "sample_data/fr/transition_energetique.json"
+      "source_file": "sample_data/fr/transition_energetique.json",
+      "ingest": "structured_json"
     },
     {
       "id": "tsb_klyuchevaya_stavka",
       "language": "ru",
       "title": "Банк России сохраняет ключевую ставку на уровне 16% для сдерживания инфляционных рисков",
-      "source_file": "sample_data/ru/tsb_klyuchevaya_stavka.json"
+      "source_file": "sample_data/ru/tsb_klyuchevaya_stavka.json",
+      "ingest": "structured_json"
     },
     {
       "id": "inflyatsiya_potrebitelskaya",
       "language": "ru",
       "title": "Потребительская инфляция в России: динамика цен на продовольствие и непродовольственные товары",
-      "source_file": "sample_data/ru/inflyatsiya_potrebitelskaya.json"
+      "source_file": "sample_data/ru/inflyatsiya_potrebitelskaya.json",
+      "ingest": "structured_json"
     },
     {
       "id": "energeticheskiy_rynok",
       "language": "ru",
       "title": "Российский энергетический рынок: добыча нефти, экспорт газа и переориентация поставок на азиатские рынки",
-      "source_file": "sample_data/ru/energeticheskiy_rynok.json"
+      "source_file": "sample_data/ru/energeticheskiy_rynok.json",
+      "ingest": "structured_json"
     },
     {
       "id": "tsifrovoy_rubl",
       "language": "ru",
       "title": "Цифровой рубль: пилотный проект Банка России и перспективы внедрения новой формы национальной валюты",
-      "source_file": "sample_data/ru/tsifrovoy_rubl.json"
+      "source_file": "sample_data/ru/tsifrovoy_rubl.json",
+      "ingest": "structured_json"
     }
   ]
 }
