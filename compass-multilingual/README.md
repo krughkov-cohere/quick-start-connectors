@@ -41,11 +41,15 @@ cp .env-template .env
 poetry run python setup.py
 ```
 
+`setup.py` calls `refresh_index()` automatically after seeding completes.
+
 **Step 4: Start the connector**
 
 ```bash
 poetry run flask --app provider --debug run --port 5000
 ```
+
+Optional verification: `poetry run python setup.py --verify` (requires Flask running: `poetry run flask --app provider --debug run --port 5000`).
 
 **Step 5: Test a search**
 
@@ -79,13 +83,13 @@ Expected response shape:
 | ecb_rate_decision | EN | ECB Governing Council Holds Key Interest Rates Steady Amid Disinflation Progress |
 | us_inflation_outlook | EN | Federal Reserve Signals Cautious Approach to Rate Cuts as US Inflation Remains Above Target |
 | global_supply_chain | EN | Global Supply Chain Disruptions Persist as Red Sea Shipping Routes Face Extended Dislocation |
-| politique_monetaire_bce | FR | La BCE maintient sa politique monétaire restrictive face aux pressions inflationnistes persistantes |
-| marche_du_travail_france | FR | Le marché du travail français affiche une résilience surprenante malgré le ralentissement économique |
-| transition_energetique | FR | La transition énergétique européenne s'accélère malgré les tensions sur les prix de l'énergie |
+| politique_monetaire_bce | FR | La BCE maintient sa politique monétaire restrictive face à une inflation sous-jacente persistante |
+| marche_du_travail_france | FR | Le marché du travail français affiche une résilience historique malgré un ralentissement économique |
+| transition_energetique | FR | La transition énergétique européenne accélère le déploiement des énergies renouvelables et la décarbonation industrielle |
 | tsb_klyuchevaya_stavka | RU | Банк России сохраняет ключевую ставку на уровне 16% для сдерживания инфляционных рисков |
-| inflyatsiya_potrebitelskaya | RU | Потребительская инфляция в России: динамика, структура и прогноз Банка России |
-| energeticheskiy_rynok | RU | Российский энергетический рынок: добыча, экспорт и влияние санкций |
-| tsifrovoy_rubl | RU | Цифровой рубль: пилотный проект Банка России и перспективы внедрения |
+| inflyatsiya_potrebitelskaya | RU | Потребительская инфляция в России: динамика цен на продовольствие и непродовольственные товары |
+| energeticheskiy_rynok | RU | Российский энергетический рынок: добыча нефти, экспорт газа и переориентация поставок на азиатские рынки |
+| tsifrovoy_rubl | RU | Цифровой рубль: пилотный проект Банка России и перспективы внедрения новой формы национальной валюты |
 
 All documents are stored as JSON in `sample_data/<lang>/` and follow this schema:
 
@@ -104,9 +108,13 @@ All documents are stored as JSON in `sample_data/<lang>/` and follow this schema
 ```
 compass-multilingual/
 ├── provider/
+│   ├── __init__.py         # Flask app export
 │   ├── app.py              # Flask connector — /search endpoint
 │   └── client.py           # Compass search + Cohere rerank logic
 ├── setup.py                # Index creation and document seeding
+├── Dockerfile              # Container image for deployment
+├── poetry.lock             # Locked dependencies
+├── .gitignore              # Git ignore rules
 ├── .env-template           # Environment variable template
 ├── pyproject.toml          # Dependencies
 ├── sample_data/
@@ -142,7 +150,7 @@ To wipe the index and start fresh (removes all documents):
 poetry run python setup.py --clean
 ```
 
-The difference: running without `--clean` skips creation if the index exists and only seeds missing documents. Running with `--clean` deletes and recreates the index from scratch.
+The difference: running without `--clean` skips index creation if the index already exists and re-inserts all documents listed in `manifest.json` (upsert by `document_id`). Running with `--clean` deletes and recreates the index from scratch before seeding.
 
 ## Configuration Reference
 
@@ -154,3 +162,74 @@ The difference: running without `--clean` skips creation if the index exists and
 | COMPASS_INDEX_NAME | Yes | Name of the Compass index to create and search |
 | CONNECTOR_API_KEY | Yes | Secret key for authenticating requests to this connector |
 | COMPASS_PARSER_URL | No | Parser endpoint — required only for PDF/DOCX/PPTX ingestion |
+
+## 10. Using with the Cohere Platform
+
+Once the connector is seeded and running locally, you can register it with the Cohere Platform and use it in Chat or North for grounded, cross-lingual responses.
+
+### Deploy the Connector
+
+The Flask server must be publicly reachable so the Cohere Platform can call your `/search` endpoint. For demos, [ngrok](https://ngrok.com/) is the quickest option:
+
+```bash
+poetry run flask --app provider --debug run --port 5000
+# in a separate terminal:
+ngrok http 5000
+# → https://abc123.ngrok.io
+```
+
+Register the connector using the ngrok URL with the `/search` path appended (for example, `https://abc123.ngrok.io/search`).
+
+For production, deploy the connector to a cloud VM, container service, or internal server with a stable HTTPS URL.
+
+### Register the Connector via Cohere API
+
+Use the Cohere Python SDK to register the connector. The `service_auth` token must match the `CONNECTOR_API_KEY` value in your `.env`:
+
+```python
+import cohere
+
+co = cohere.Client("YOUR_COHERE_API_KEY")
+connector = co.connectors.create(
+    name="compass-multilingual",
+    url="https://your-server-url/search",
+    service_auth={
+        "type": "bearer",
+        "token": "your_CONNECTOR_API_KEY_value",
+    },
+)
+print(connector.connector.id)  # save this ID
+```
+
+### Query with the Connector
+
+Pass the connector ID in a Chat API call. Cohere queries your `/search` endpoint and uses the returned documents to generate a grounded response:
+
+```python
+response = co.chat(
+    message="What is the central bank policy on interest rates?",
+    connectors=[{"id": "connector-id-from-above"}],
+    model="command-r-plus",
+)
+print(response.text)
+print(response.citations)
+```
+
+### Multilingual Responses
+
+This connector accepts a `response_language` field on the `/search` request body. Pass it via connector `options` in Chat — the platform forwards options to your connector, and each result includes `response_language` as metadata for Command:
+
+```python
+response = co.chat(
+    message="Quelle est la politique de la BCE?",
+    connectors=[{
+        "id": "connector-id-from-above",
+        "options": {"response_language": "French"},
+    }],
+    model="command-r-plus",
+)
+```
+
+### Using in North (UI)
+
+If North is deployed in your organization, add the connector under **Settings → Connectors → Add Connector** using the same URL and bearer token. Users can then enable it per conversation as a data source toggle for grounded, cross-lingual chat.

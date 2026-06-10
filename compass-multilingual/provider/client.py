@@ -33,14 +33,14 @@ def search(query: str, response_language: str = "English") -> list[dict]:
     reranked = co.rerank(
         model="rerank-v4.0-pro",
         query=query,
-        documents=[r.content["text"] for r in hits],
+        documents=[r.content.get("text", "") for r in hits],
         top_n=3,
     )
 
     return [
         {
             "id": f"doc:{i}",
-            "text": hits[r.index].content["text"],
+            "text": hits[r.index].content.get("text", ""),
             "title": hits[r.index].content.get("title", ""),
             "source": hits[r.index].content.get("source", ""),
             "response_language": response_language,
