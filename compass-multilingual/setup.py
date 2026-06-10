@@ -59,7 +59,9 @@ def load_environment() -> tuple[str, str, str]:
         print("❌ Missing required environment variables:")
         for var in missing:
             print(f"   - {var}")
-        print(f"\nCopy {PROJECT_ROOT / '.env-template'} to .env and fill in the values.")
+        print(
+            f"\nCopy {PROJECT_ROOT / '.env-template'} to .env and fill in the values."
+        )
         sys.exit(1)
 
     return (
@@ -338,7 +340,9 @@ def print_success(index_name: str, counts: dict[str, int]) -> None:
         f"{count} {language.upper()}" for language, count in counts.items() if count > 0
     )
     if counts_str:
-        print(f"✅ Done. Seeded {total} documents ({counts_str}) into index '{index_name}'")
+        print(
+            f"✅ Done. Seeded {total} documents ({counts_str}) into index '{index_name}'"
+        )
     else:
         print(f"⚠️  Done with no documents seeded into index '{index_name}'")
     print("   Run: poetry run flask --app provider --debug run --port 5000")
@@ -346,8 +350,8 @@ def print_success(index_name: str, counts: dict[str, int]) -> None:
         "   Then: curl -X POST http://localhost:5000/search "
         "-H 'Authorization: Bearer $CONNECTOR_API_KEY' "
         "-H 'Content-Type: application/json' "
-        "-d '{\"query\": \"What is the central bank policy on interest rates?\", "
-        "\"response_language\": \"English\"}'"
+        '-d \'{"query": "What is the central bank policy on interest rates?", '
+        '"response_language": "English"}\''
     )
 
 

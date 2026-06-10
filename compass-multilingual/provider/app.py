@@ -19,6 +19,7 @@ def require_auth(f):
             if auth != f"Bearer {CONNECTOR_API_KEY}":
                 return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
+
     return decorated
 
 
