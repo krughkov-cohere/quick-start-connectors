@@ -4,13 +4,16 @@ version = "0.1.0"
 package-mode = false
 description = "Cohere Compass multilingual RAG connector"
 authors = []
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-flask = "^3.0.0"
+flask = "2.2.5"
+connexion = { extras = ["swagger-ui"], version = "^2.14.2" }
+python-dotenv = "^1.0.0"
+gunicorn = "^22.0.0"
 cohere = "^5.0.0"
 cohere-compass-sdk = "^1.0.0"
-python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "24.1.1"

@@ -1,45 +1,32 @@
-import os
-from functools import wraps
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-from .client import search
+import logging
 
-load_dotenv()
+from connexion.exceptions import Unauthorized
+from flask import abort, current_app as app
 
-app = Flask(__name__)
+from . import UpstreamProviderError, provider
 
-CONNECTOR_API_KEY = os.environ.get("CONNECTOR_API_KEY", "")
+logger = logging.getLogger(__name__)
 
 
-def require_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if CONNECTOR_API_KEY:
-            auth = request.headers.get("Authorization", "")
-            if auth != f"Bearer {CONNECTOR_API_KEY}":
-                return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"})
-
-
-@app.route("/search", methods=["POST"])
-@require_auth
-def search_endpoint():
-    body = request.get_json(force=True, silent=True) or {}
-    query = body.get("query", "").strip()
-    response_language = body.get("response_language", "English").strip()
-
-    if not query:
-        return jsonify({"error": "query is required"}), 400
+def search(body):
+    logger.debug(f'Search request: {body["query"]}')
+    response_language = body.get("response_language", "English")
+    if isinstance(response_language, str):
+        response_language = response_language.strip() or "English"
+    else:
+        response_language = "English"
 
     try:
-        results = search(query=query, response_language=response_language)
-        return jsonify({"results": results})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        data = provider.search(body["query"], response_language=response_language)
+        logger.info(f"Found {len(data)} results")
+    except UpstreamProviderError as error:
+        logger.error(f"Upstream search error: {error.message}")
+        abort(502, error.message)
+
+    return {"results": data}, 200, {"X-Connector-Id": app.config.get("APP_ID")}
+
+
+def apikey_auth(token):
+    if token != str(app.config.get("CONNECTOR_API_KEY")):
+        raise Unauthorized()
+    return {}

@@ -44,6 +44,21 @@ VERIFY_QUERIES = [
 LANGUAGE_LABELS = {"en": "EN", "fr": "FR", "ru": "RU"}
 INGEST_STRUCTURED_JSON = "structured_json"
 INGEST_PARSER = "parser"
+ENV_PREFIX = "COMPASS_MULTILINGUAL"
+
+
+def env_var(name: str, default: str = "") -> str:
+    prefixed = f"{ENV_PREFIX}_{name}"
+    if prefixed in os.environ:
+        return os.environ[prefixed]
+    if name in os.environ:
+        return os.environ[name]
+    return default
+
+
+def env_var_set(name: str) -> bool:
+    prefixed = f"{ENV_PREFIX}_{name}"
+    return prefixed in os.environ or name in os.environ
 
 
 def load_environment() -> tuple[str, str, str]:
@@ -51,10 +66,10 @@ def load_environment() -> tuple[str, str, str]:
 
     missing = []
     for var in ("COMPASS_INDEX_URL", "COMPASS_INDEX_NAME"):
-        if not os.environ.get(var, "").strip():
-            missing.append(var)
-    if "COMPASS_BEARER_TOKEN" not in os.environ:
-        missing.append("COMPASS_BEARER_TOKEN")
+        if not env_var(var, "").strip():
+            missing.append(f"{ENV_PREFIX}_{var}")
+    if not env_var_set("COMPASS_BEARER_TOKEN"):
+        missing.append(f"{ENV_PREFIX}_COMPASS_BEARER_TOKEN")
     if missing:
         print("❌ Missing required environment variables:")
         for var in missing:
@@ -65,9 +80,9 @@ def load_environment() -> tuple[str, str, str]:
         sys.exit(1)
 
     return (
-        os.environ["COMPASS_INDEX_URL"],
-        os.environ["COMPASS_BEARER_TOKEN"],
-        os.environ["COMPASS_INDEX_NAME"],
+        env_var("COMPASS_INDEX_URL"),
+        env_var("COMPASS_BEARER_TOKEN"),
+        env_var("COMPASS_INDEX_NAME"),
     )
 
 
@@ -245,7 +260,7 @@ def seed_documents(
     documents = load_manifest()
     counts: dict[str, int] = {}
     failures: list[str] = []
-    parser_url = os.environ.get("COMPASS_PARSER_URL", "").strip()
+    parser_url = env_var("COMPASS_PARSER_URL", "").strip()
 
     for entry in documents:
         source_path = PROJECT_ROOT / entry["source_file"]
@@ -267,7 +282,7 @@ def seed_documents(
         elif ingest_method == INGEST_PARSER:
             if not parser_url:
                 error_message = (
-                    "COMPASS_PARSER_URL is required for parser ingest "
+                    f"{ENV_PREFIX}_COMPASS_PARSER_URL is required for parser ingest "
                     f"({source_path.name})"
                 )
             elif parser_client is None:
@@ -307,7 +322,10 @@ def seed_documents(
 
 
 def verify_search_endpoint() -> None:
-    api_key = os.environ.get("CONNECTOR_API_KEY", "")
+    api_key = env_var("CONNECTOR_API_KEY", "")
+    if not api_key:
+        print(f"⚠️  Skipping verify: {ENV_PREFIX}_CONNECTOR_API_KEY is not set in .env")
+        return
 
     for label, query, response_language in VERIFY_QUERIES:
         payload = json.dumps(
@@ -326,6 +344,11 @@ def verify_search_endpoint() -> None:
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
                 body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            print(
+                f"[{label}] '{truncate_query(query)}' → HTTP {error.code}: {error.reason}"
+            )
+            continue
         except urllib.error.URLError as error:
             print(f"[{label}] '{truncate_query(query)}' → error: {error}")
             continue
@@ -348,7 +371,7 @@ def print_success(index_name: str, counts: dict[str, int]) -> None:
     print("   Run: poetry run flask --app provider --debug run --port 5000")
     print(
         "   Then: curl -X POST http://localhost:5000/search "
-        "-H 'Authorization: Bearer $CONNECTOR_API_KEY' "
+        f"-H 'Authorization: Bearer ${ENV_PREFIX}_CONNECTOR_API_KEY' "
         "-H 'Content-Type: application/json' "
         '-d \'{"query": "What is the central bank policy on interest rates?", '
         '"response_language": "English"}\''
@@ -377,7 +400,7 @@ def main() -> None:
     index_url, bearer_token, index_name = load_environment()
     compass_client = create_compass_client(index_url, bearer_token)
 
-    parser_url = os.environ.get("COMPASS_PARSER_URL", "").strip()
+    parser_url = env_var("COMPASS_PARSER_URL", "").strip()
     parser_client = (
         create_parser_client(parser_url, bearer_token) if parser_url else None
     )
@@ -419,7 +442,7 @@ if __name__ == "__main__":
 #   1. Place the file under sample_data/<lang>/ (e.g. sample_data/en/report.pdf)
 #   2. Add an entry to sample_data/manifest.json with id, language, title, source_file,
 #      and ingest ("structured_json" for JSON, "parser" for binary/text office files)
-#   3. For parser ingest, set COMPASS_PARSER_URL in .env
+#   3. For parser ingest, set COMPASS_MULTILINGUAL_COMPASS_PARSER_URL in .env
 #   4. Run: poetry run python setup.py --clean
 #
 # TODO: --dry-run  validate manifest and document files without connecting to Compass
